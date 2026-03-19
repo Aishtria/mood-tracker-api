@@ -7,10 +7,10 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 export async function getAIResponse(text) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    const prompt = `You are a supportive mental health assistant. 
-                    The user said: "${text}". 
-                    Provide a short, empathetic response (1-2 sentences).`;
+
+    const prompt = `You are a supportive mental health assistant.
+User said: "${text}".
+Provide a short, empathetic response (1-2 sentences).`;
 
     const result = await model.generateContent(prompt);
     return result.response.text();
