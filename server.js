@@ -1,11 +1,17 @@
 import express from "express";
-import cors from "cors"; // Add this
+import cors from "cors";
 import moodRoutes from "./routes/moods.js";
 
 const app = express();
-app.use(cors()); // Allow your frontend to talk to this server
+
+// Middleware
+app.use(cors());
 app.use(express.json());
 
+// Routes
+// This sets the base path to /api/moods
 app.use("/api/moods", moodRoutes); 
 
-app.listen(5000, () => console.log("Server running on port 5000"));
+// Use Render's port or default to 5000 for local testing
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
