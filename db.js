@@ -6,20 +6,18 @@ const db = mysql.createPool({
   user: process.env.MYSQLUSER,
   password: process.env.MYSQLPASSWORD,
   database: process.env.MYSQLDATABASE,
-  // 🚨 Port 32465 is from your credentials, let's make sure it uses it
-  port: process.env.MYSQLPORT || 32465, 
+  port: process.env.MYSQLPORT || 32465,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  // ✨ ADDED: SSL is often required for Railway to talk to Render safely
+  // 🚨 THIS IS THE CRITICAL FIX FOR RENDER -> RAILWAY
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-// ✅ Added a test to "shout" in the logs when it works!
+// Check connection status
 db.getConnection()
   .then(() => console.log("✅ SUCCESS: Linked to Railway MySQL!"))
-  .catch((err) => console.error("❌ CONNECTION ERROR:", err.message));
+  .catch((err) => console.error("❌ Database connection error:", err.message));
 
 export default db;

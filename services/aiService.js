@@ -1,21 +1,24 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import dotenv from "dotenv";
-dotenv.config();
+import Groq from "groq-sdk";
+import 'dotenv/config';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function getAIResponse(text) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { 
+          role: "system", 
+          content: "You are a supportive mental health assistant. Provide a short, empathetic response (1 sentence)." 
+        },
+        { role: "user", content: text }
+      ],
+      model: "llama-3.3-70b-versatile",
+    });
 
-    const prompt = `You are a supportive mental health assistant.
-User said: "${text}".
-Provide a short, empathetic response (1-2 sentences).`;
-
-    const result = await model.generateContent(prompt);
-    return result.response.text();
+    return chatCompletion.choices[0].message.content;
   } catch (error) {
-    console.error("AI Error:", error);
+    console.error("AI Error:", error.message);
     return "I'm here for you. Take a deep breath.";
   }
 }
