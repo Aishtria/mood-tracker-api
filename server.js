@@ -2,11 +2,11 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import Groq from "groq-sdk";
-import db from './db.js'; 
+import db from './db.js'; // Ensure this matches your db file name
 
 const app = express();
 
-// Middleware
+// Middleware - Fixes CORS and 400 Bad Request errors
 app.use(cors());
 app.use(express.json()); 
 
@@ -15,20 +15,27 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 /**
  * 🏠 ROUTE 0: Home/Base URL
- * This stops the "Cannot GET /" error when visiting the main URL.
+ * Prevents "Cannot GET /" and shows available endpoints
  */
 app.get('/', (req, res) => {
     res.send("<h1>🧍 Mental Health API is online and healthy.</h1><p>Endpoints: /health, /mood, /mood-history</p>");
 });
 
 /**
- * 🔍 ROUTE 1: GET /mood-history
+ * ✅ ROUTE 1: Health Check
+ */
+app.get('/health', (req, res) => res.json({ status: "OK", timestamp: new Date() }));
+
+/**
+ * 🔍 ROUTE 2: GET /mood-history
+ * Fetches data from Railway to show in your Vue history list
  */
 app.get('/mood-history', async (req, res) => {
     try {
         console.log("📥 Fetching history from database...");
+        // Updated to match your database column names
         const [rows] = await db.query(
-            'SELECT mood_text, ai_response, created_at FROM mood_entries ORDER BY created_at DESC'
+            'SELECT full_name, mood_text, ai_response, created_at FROM mood_entries ORDER BY created_at DESC'
         );
         res.json({ success: true, data: rows });
     } catch (err) {
@@ -38,7 +45,8 @@ app.get('/mood-history', async (req, res) => {
 });
 
 /**
- * 🚀 ROUTE 2: POST /mood
+ * 🚀 ROUTE 3: POST /mood
+ * Receives data from Vue, gets AI response, and saves to Railway
  */
 app.post('/mood', async (req, res) => {
     const { name, mood } = req.body;
@@ -50,7 +58,7 @@ app.post('/mood', async (req, res) => {
     }
 
     try {
-        // AI Processing
+        // 🤖 Groq AI Processing
         const chatCompletion = await groq.chat.completions.create({
             messages: [
                 { 
@@ -64,9 +72,10 @@ app.post('/mood', async (req, res) => {
 
         const aiReply = chatCompletion.choices[0].message.content;
 
-        // Save to Database (Railway)
-        const sql = `INSERT INTO mood_entries (user_id, mood_text, ai_response) VALUES (?, ?, ?)`;
-        await db.query(sql, [1, mood, aiReply]); 
+        // 💾 Save to Database (Railway)
+        // Using 'full_name' and 'mood_text' to match your DB schema
+        const sql = `INSERT INTO mood_entries (full_name, mood_text, ai_response) VALUES (?, ?, ?)`;
+        await db.query(sql, [name, mood, aiReply]); 
 
         res.json({ 
             success: true, 
@@ -75,15 +84,13 @@ app.post('/mood', async (req, res) => {
 
     } catch (err) {
         console.error("❌ AI/DB Error:", err.message);
-        res.status(500).json({ error: "Processing failed", details: err.message });
+        res.status(500).json({ 
+            error: "Processing failed", 
+            details: err.sqlMessage || err.message 
+        });
     }
 });
 
-/**
- * ✅ ROUTE 3: Health Check
- */
-app.get('/health', (req, res) => res.json({ status: "OK" }));
-
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
