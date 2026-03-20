@@ -15,10 +15,9 @@ const PORT = process.env.PORT || 10000;
 // ✅ Initialize Groq
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// ✅ GET Route: Fetch all history
+// ✅ GET Route: Fetch history for user_id = 1
 app.get('/mood-history', async (req, res) => {
     try {
-        // Fetching history for user_id = 1 (Trishia)
         const [rows] = await db.query(
             'SELECT mood_text, ai_response, created_at FROM mood_entries WHERE user_id = 1 ORDER BY created_at DESC'
         );
@@ -33,49 +32,46 @@ app.get('/mood-history', async (req, res) => {
     }
 });
 
-// ✅ POST Route: Saves to mood_entries
+// ✅ POST Route: Process Mood & Save
 app.post('/mood', async (req, res) => {
-    // 1. Get data from Vue (MoodForm.vue sends 'name' and 'mood')
     const { name, mood } = req.body;
 
-    // 2. Validation
     if (!mood) {
-        return res.status(400).json({ error: "Mood content is required." });
+        return res.status(400).json({ error: "Mood is required." });
     }
 
     try {
-        console.log(`🤖 Processing mood for ${name || 'User'}: "${mood}"`);
+        console.log(`🤖 AI is thinking for: ${name || 'User'}...`);
 
-        // 3. Generate AI Response using Groq
+        // 1. AI Logic (Groq)
         const chatCompletion = await groq.chat.completions.create({
             messages: [
-                {
-                    role: "system",
-                    content: "You are a supportive mental health companion. Provide a one-sentence, empathetic response."
-                },
-                { role: "user", content: mood } // FIXED: Changed mood_text to mood
+                { role: "system", content: "You are a supportive mental health companion. Provide a one-sentence, empathetic response." },
+                { role: "user", content: mood }
             ],
             model: "llama-3.3-70b-versatile",
         });
 
         const aiReply = chatCompletion.choices[0].message.content;
 
-        // 4. Insert into Database
-        // We use user_id = 1 and the 'mood' variable for mood_text column
-        const sql = `INSERT INTO mood_entries (user_id, mood_text, ai_response) VALUES (?, ?, ?)`;
-        
-        await db.query(sql, [1, mood, aiReply]); // FIXED: Changed mood_text to mood
+        // 2. Database Logic (Nested try/catch so AI reply still sends if DB fails)
+        try {
+            const sql = `INSERT INTO mood_entries (user_id, mood_text, ai_response) VALUES (?, ?, ?)`;
+            await db.query(sql, [1, mood, aiReply]);
+            console.log("✅ Data successfully saved to Railway!");
+        } catch (dbErr) {
+            console.error("⚠️ Database Save Failed:", dbErr.message);
+            // We don't return here so the user still gets their AI answer
+        }
 
-        console.log("✅ Data successfully saved to Railway!");
-
-        // 5. Send response back to Vue
+        // 3. Send success response back to Vue
         res.json({ 
             success: true, 
             ai_reply: aiReply 
         });
 
     } catch (err) {
-        console.error("❌ BACKEND ERROR:", err.message);
+        console.error("❌ GLOBAL BACKEND ERROR:", err.message);
         res.status(500).json({ 
             error: "Sync Failed", 
             details: err.message 
@@ -89,5 +85,5 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server Version 5.1 online at port ${PORT}`);
+    console.log(`🚀 Server Version 6.0 online at port ${PORT}`);
 });
