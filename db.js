@@ -3,15 +3,15 @@ import 'dotenv/config';
 
 // 🔍 LAB 7 LOGGING: Trace the Connection Attempt
 console.log("📡 Attempting External Handshake...");
-console.log("📍 Host:", process.env.MYSQLHOST);
-console.log("🔌 Port:", process.env.MYSQLPORT);
+console.log("📍 Host:", process.env.DB_HOST);
+console.log("🔌 Port:", process.env.DB_PORT);
 
 const db = mysql.createPool({
-  host: process.env.MYSQLHOST,
-  user: process.env.MYSQLUSER,
-  password: process.env.MYSQLPASSWORD,
-  database: process.env.MYSQLDATABASE,
-  port: Number(process.env.MYSQLPORT) || 32465, 
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT) || 32465, 
   ssl: {
     rejectUnauthorized: false // 🔒 Required for Railway External Connections
   },
@@ -21,12 +21,12 @@ const db = mysql.createPool({
 // 🧪 LAB 7 DIAGNOSTIC: Test the "Bridge"
 db.getConnection()
   .then((conn) => {
-    console.log("✅ SUCCESS: Linked to Railway via Proxy 32465!");
+    console.log("✅ SUCCESS: Linked to Railway via Proxy!");
     conn.release();
   })
   .catch((err) => {
     console.error("❌ CONNECTION FAILED!");
-    console.error("Diagnostic Code:", err.code); // e.g., 'ETIMEDOUT'
+    console.error("Diagnostic Code:", err.code); 
     console.error("Full Message:", err.message);
   });
 

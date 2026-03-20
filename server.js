@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 10000;
 // ✅ Initialize Groq
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// ✅ GET Route: Fetch history for user_id = 1
+// ✅ GET Route: Fetch history
 app.get('/mood-history', async (req, res) => {
     try {
         const [rows] = await db.query(
@@ -54,17 +54,15 @@ app.post('/mood', async (req, res) => {
 
         const aiReply = chatCompletion.choices[0].message.content;
 
-        // 2. Database Logic (Nested try/catch so AI reply still sends if DB fails)
+        // 2. Database Logic
         try {
             const sql = `INSERT INTO mood_entries (user_id, mood_text, ai_response) VALUES (?, ?, ?)`;
             await db.query(sql, [1, mood, aiReply]);
             console.log("✅ Data successfully saved to Railway!");
         } catch (dbErr) {
             console.error("⚠️ Database Save Failed:", dbErr.message);
-            // We don't return here so the user still gets their AI answer
         }
 
-        // 3. Send success response back to Vue
         res.json({ 
             success: true, 
             ai_reply: aiReply 
@@ -79,7 +77,7 @@ app.post('/mood', async (req, res) => {
     }
 });
 
-// ✅ Health Check Route (Part 4 of Lab 7)
+// ✅ Health Check Route
 app.get('/health', (req, res) => {
     res.json({ status: "OK", message: "API is running" });
 });
