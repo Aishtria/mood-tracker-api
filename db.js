@@ -1,12 +1,13 @@
 import mysql from 'mysql2/promise';
 import 'dotenv/config';
 
+console.log("🛠️ Attempting to connect to Railway at:", process.env.MYSQLHOST);
+
 const db = mysql.createPool({
   host: process.env.MYSQLHOST,
   user: process.env.MYSQLUSER,
   password: process.env.MYSQLPASSWORD,
   database: process.env.MYSQLDATABASE,
-  // Ensure port is a number, default to Railway's public port
   port: parseInt(process.env.MYSQLPORT) || 32465,
   waitForConnections: true,
   connectionLimit: 10,
@@ -15,20 +16,17 @@ const db = mysql.createPool({
   }
 });
 
-// Test the connection immediately
+// Immediate self-invoking test
 (async () => {
   try {
     const connection = await db.getConnection();
     console.log("✅ SUCCESS: Linked to Railway MySQL!");
     connection.release();
   } catch (err) {
-    // This will now print the FULL error details in Render logs
-    console.error("❌ Database connection error details:", {
-      message: err.message,
-      code: err.code,
-      errno: err.errno,
-      host: process.env.MYSQLHOST
-    });
+    // 🚨 FORCE LOGGING: This converts the error to a readable string
+    console.error("❌ DB ERROR TYPE:", err.constructor.name);
+    console.error("❌ DB ERROR MESSAGE:", err.message);
+    console.error("❌ DB ERROR CODE:", err.code);
   }
 })();
 
